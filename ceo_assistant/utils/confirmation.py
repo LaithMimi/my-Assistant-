@@ -24,8 +24,10 @@ logger = logging.getLogger(__name__)
 _registry: dict[int, "_PendingAction"] = {}
 
 
+from datetime import datetime, timedelta
+
 class _PendingAction:
-    __slots__ = ("label", "preview", "execute_fn")
+    __slots__ = ("label", "preview", "execute_fn", "expires_at")
 
     def __init__(
         self,
@@ -36,6 +38,7 @@ class _PendingAction:
         self.label = label
         self.preview = preview
         self.execute_fn = execute_fn
+        self.expires_at = datetime.now() + timedelta(minutes=5)
 
 
 def register(
@@ -76,6 +79,10 @@ async def confirm(chat_id: int) -> str:
     action = _registry.pop(chat_id, None)
     if action is None:
         return "⚠️ No pending action found."
+    
+    if datetime.now() > action.expires_at:
+        return "⏰ Action expired. Please try again."
+
     logger.info("Executing confirmed action for chat_id=%s: %s", chat_id, action.label)
     try:
         result = await action.execute_fn()

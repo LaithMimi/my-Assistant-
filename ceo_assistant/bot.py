@@ -12,6 +12,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
+from collections import defaultdict
 
 from telegram import Update
 from telegram.constants import ChatAction as CA
@@ -62,6 +64,21 @@ def _is_no(text: str) -> bool:
     return text.lower().strip().rstrip("!.") in _NO_WORDS
 
 
+# ── Rate limiting ─────────────────────────────────────────────────────────
+
+_rate_limits = defaultdict(list)
+
+def _is_rate_limited(chat_id: int, max_calls: int = 15, window_seconds: int = 60) -> bool:
+    """True if chat_id has made >= max_calls within window_seconds."""
+    now = time.time()
+    calls = [t for t in _rate_limits[chat_id] if now - t < window_seconds]
+    _rate_limits[chat_id] = calls
+    if len(calls) >= max_calls:
+        return True
+    _rate_limits[chat_id].append(now)
+    return False
+
+
 # ── Core helpers ──────────────────────────────────────────────────────────
 
 async def _send_chunks(context: ContextTypes.DEFAULT_TYPE, chat_id: int, text: str) -> None:
@@ -74,6 +91,13 @@ async def _thinking_and_run(
 ) -> None:
     """Sanitize → show thinking → run agent → edit with result."""
     chat_id = update.effective_chat.id
+
+    if _is_rate_limited(chat_id):
+        await update.effective_message.reply_text(
+            "⚠️ <b>Rate limit exceeded.</b> Please wait a minute before sending more requests.",
+            parse_mode="HTML"
+        )
+        return
 
     if not is_authorised(chat_id):
         auth_url = build_auth_url(chat_id)
@@ -114,18 +138,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if is_authorised(chat_id):
         name = get_user_name(chat_id)
-        profile = get_profile(chat_id)
-        profile["name"] = name
-        _ceo_profiles[chat_id] = profile
-        try:
-            mgr = get_memory_manager(chat_id, name)
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, mgr.build_index)
-        except Exception as exc:
-            logger.warning("Memory index rebuild failed: %s", exc)
-
+        # Check if they just sent /start to get the menu
         await update.message.reply_text(
-            f"✅ <b>Welcome back, {name}!</b>\n\n"
+            f"✅ <b>Welcome back, {name}! You're already connected.</b>\n\n"
             "I'm your AI Chief of Staff. Commands:\n"
             "• /triage — Inbox triage\n"
             "• /brief — Pre-meeting briefing\n"

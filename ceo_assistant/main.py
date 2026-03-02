@@ -58,8 +58,12 @@ async def lifespan(app: FastAPI):
     """Set the Telegram webhook on startup."""
     await _tg_app.initialize()
     if WEBHOOK_URL:
-        await _bot.set_webhook(url=WEBHOOK_URL, drop_pending_updates=True)
-        logger.info("Webhook set to %s", WEBHOOK_URL)
+        secret_token = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
+        kwargs = {"url": WEBHOOK_URL, "drop_pending_updates": True}
+        if secret_token:
+            kwargs["secret_token"] = secret_token
+        await _bot.set_webhook(**kwargs)
+        logger.info("Webhook set to %s (secret_token: %s)", WEBHOOK_URL, bool(secret_token))
     else:
         logger.warning("WEBHOOK_URL not set — webhook not registered.")
     yield
@@ -91,14 +95,22 @@ async def _process_update(raw_update: dict) -> None:
 async def webhook(request: Request) -> JSONResponse:
     """
     Receive Telegram updates. Fire-and-forget to avoid the 10-second timeout.
-    Always returns 200 immediately so Telegram doesn't retry.
+    Validates X-Telegram-Bot-Api-Secret-Token to prevent unauthorized requests.
     """
+    secret_token = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
+    if secret_token:
+        header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        if header_token != secret_token:
+            logger.warning("Rejected webhook: invalid secret token")
+            raise HTTPException(status_code=403, detail="Invalid secret token")
+
     try:
         body = await request.json()
         asyncio.create_task(_process_update(body))
     except Exception as exc:
         logger.error("Webhook deserialization error: %s", exc)
     return JSONResponse({"ok": True})
+
 
 
 # ── Google OAuth flow ─────────────────────────────────────────────────────
