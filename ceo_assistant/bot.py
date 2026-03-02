@@ -254,6 +254,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             # Fall through to agent
 
+    # ── Normal agent flow ─────────────────────────────────────────────────
+    clean = sanitize_input(raw_text)
+    if not clean:
+        return
+    await _thinking_and_run(update, context, clean)
+
+
 async def sync(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     if not is_authorised(chat_id):
@@ -273,12 +280,6 @@ async def sync(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as exc:
         logger.error("Sync error for chat_id=%s: %s", chat_id, exc)
         await msg.edit_text(f"⚠️ Failed to sync documents: <code>{exc}</code>", parse_mode="HTML")
-
-    # ── Normal agent flow ─────────────────────────────────────────────────
-    clean = sanitize_input(raw_text)
-    if not clean:
-        return
-    await _thinking_and_run(update, context, clean)
 
 
 # ── Application builder ───────────────────────────────────────────────────

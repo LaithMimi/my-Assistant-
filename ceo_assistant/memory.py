@@ -125,6 +125,7 @@ class MemoryManager:
             # 2. Fetch optional external startup context doc
             external_doc_id = os.environ.get("STARTUP_CONTEXT_DOC_ID")
             if external_doc_id:
+                external_doc_id = external_doc_id.strip()
                 logger.info("Fetching external startup context doc: %s", external_doc_id)
                 external_text = self._fetch_doc_text(external_doc_id)
                 if external_text:
