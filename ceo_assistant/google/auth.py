@@ -71,6 +71,9 @@ def build_auth_url(chat_id: int) -> str:
         include_granted_scopes="true",
         prompt="consent",
         state=str(chat_id),
+        # Required for stateless backend flow since we don't have a session to store the code_verifier
+        code_challenge=None,
+        code_challenge_method=None,
     )
     return auth_url
 
