@@ -254,6 +254,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             # Fall through to agent
 
+async def sync(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    if not is_authorised(chat_id):
+        await update.message.reply_text("⚠️ Please /start to connect your Google account first.")
+        return
+    if _is_rate_limited(chat_id, max_calls=15, window_seconds=60):
+        await update.message.reply_text("⚠️ You're chatting too fast! Please wait a minute.")
+        return
+
+    msg = await update.message.reply_text("⏳ Syncing your latest Google Docs and Startup Context...")
+    try:
+        from ceo_assistant.memory import MemoryManager
+        memory_mgr = MemoryManager(chat_id)
+        # This will download the CEO doc + external doc and rebuild the FAISS index
+        memory_mgr.build_index()
+        await msg.edit_text("✅ <b>Sync complete!</b> Your bot now has the latest documents in memory.", parse_mode="HTML")
+    except Exception as exc:
+        logger.error("Sync error for chat_id=%s: %s", chat_id, exc)
+        await msg.edit_text(f"⚠️ Failed to sync documents: <code>{exc}</code>", parse_mode="HTML")
+
     # ── Normal agent flow ─────────────────────────────────────────────────
     clean = sanitize_input(raw_text)
     if not clean:
@@ -276,6 +296,7 @@ def create_application(token: str) -> Application:
     app.add_handler(CommandHandler("protect", protect))
     app.add_handler(CommandHandler("remember", remember))
     app.add_handler(CommandHandler("recall", recall))
+    app.add_handler(CommandHandler("sync", sync))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
