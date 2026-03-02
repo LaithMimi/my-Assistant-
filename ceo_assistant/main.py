@@ -99,6 +99,7 @@ async def webhook(request: Request) -> JSONResponse:
     """
     secret_token = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
     if secret_token:
+        secret_token = secret_token.strip()
         header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
         if header_token != secret_token:
             logger.warning("Rejected webhook: invalid secret token")

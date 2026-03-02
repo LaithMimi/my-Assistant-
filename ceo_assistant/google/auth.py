@@ -44,9 +44,9 @@ def _token_path(chat_id: int) -> Path:
 
 def _client_config() -> dict:
     """Build the OAuth client config dict from environment variables."""
-    client_id = os.environ["GOOGLE_CLIENT_ID"]
-    client_secret = os.environ["GOOGLE_CLIENT_SECRET"]
-    redirect_uri = os.environ["GOOGLE_REDIRECT_URI"]
+    client_id = os.environ["GOOGLE_CLIENT_ID"].strip()
+    client_secret = os.environ["GOOGLE_CLIENT_SECRET"].strip()
+    redirect_uri = os.environ["GOOGLE_REDIRECT_URI"].strip()
     return {
         "web": {
             "client_id": client_id,
