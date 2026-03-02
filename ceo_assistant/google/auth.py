@@ -34,8 +34,10 @@ SCOPES: list[str] = [
     "openid",
 ]
 
-CREDENTIALS_DIR = Path("credentials")
-CREDENTIALS_DIR.mkdir(exist_ok=True)
+# Allow persisting credentials on ephemeral hosts like Railway
+DATA_DIR = Path(os.environ.get("DATA_DIR", "."))
+CREDENTIALS_DIR = DATA_DIR / "credentials"
+CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _token_path(chat_id: int) -> Path:

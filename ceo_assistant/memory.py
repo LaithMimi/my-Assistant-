@@ -25,7 +25,8 @@ from ceo_assistant.google.client import get_docs_service, get_drive_service
 
 logger = logging.getLogger(__name__)
 
-FAISS_BASE = Path("faiss_index")
+DATA_DIR = Path(os.environ.get("DATA_DIR", "."))
+FAISS_BASE = DATA_DIR / "faiss_index"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 DOC_TITLE_PREFIX = "CEO Memory"
