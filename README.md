@@ -62,11 +62,12 @@ Fill in all values:
 | `GOOGLE_CLIENT_ID` | Google Cloud Console (see below) |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud Console (see below) |
 | `GOOGLE_REDIRECT_URI` | `https://yourdomain.com/auth/callback` |
-| `BASE_URL` | `https://yourdomain.com` |
-| `WEBHOOK_URL` | `https://yourdomain.com/webhook` |
-| `LANGSMITH_API_KEY` | [smith.langchain.com](https://smith.langchain.com) (optional) |
-
----
+| `BASE_URL` | Your public domain (e.g. `https://my-app.up.railway.app`) | required |
+| `WEBHOOK_URL` | Your public webhook URL (e.g. `https://my-app.up.railway.app/webhook`) | required |
+| `LANGSMITH_API_KEY` | LangSmith API key for tracing / agent observability | optional |
+| `SUPABASE_URL` | Supabase project URL for agent evaluation logging (`agent_logs` table) | optional |
+| `SUPABASE_KEY` | Supabase anon or service-role key | optional |
+| `STARTUP_CONTEXT_DOC_ID` | Optional Google Doc ID containing permanent background context. Fetched and indexed alongside memory. | optional |
 
 ### 3. Google Cloud Console Setup
 

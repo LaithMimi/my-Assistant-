@@ -91,11 +91,15 @@ class MemoryManager:
         ).execute()
         return self._doc_id
 
-    def _fetch_doc_text(self) -> str:
-        """Return the full plain-text content of the CEO Memory doc."""
-        doc_id = self._get_or_create_doc()
+    def _fetch_doc_text(self, doc_id: str) -> str:
+        """Return the full plain-text content of ANY Google Doc by ID."""
         docs_service = get_docs_service(self.chat_id)
-        doc = docs_service.documents().get(documentId=doc_id).execute()
+        try:
+            doc = docs_service.documents().get(documentId=doc_id).execute()
+        except Exception as exc:
+            logger.error("Failed to fetch doc %s: %s", doc_id, exc)
+            return ""
+
         lines: list[str] = []
         for element in doc.get("body", {}).get("content", []):
             para = element.get("paragraph")
@@ -110,11 +114,21 @@ class MemoryManager:
 
     def build_index(self) -> None:
         """
-        Fetch the Google Doc, split into chunks, embed, and save FAISS index.
-        Call on /start and after every memory_save.
+        Fetch the CEO Memory Google Doc (and optionally an external startup context doc),
+        split into chunks, embed, and save FAISS index.
         """
         try:
-            text = self._fetch_doc_text()
+            # 1. Fetch main CEO memory doc
+            main_doc_id = self._get_or_create_doc()
+            text = self._fetch_doc_text(main_doc_id)
+
+            # 2. Fetch optional external startup context doc
+            external_doc_id = os.environ.get("STARTUP_CONTEXT_DOC_ID")
+            if external_doc_id:
+                logger.info("Fetching external startup context doc: %s", external_doc_id)
+                external_text = self._fetch_doc_text(external_doc_id)
+                if external_text:
+                    text += "\n\n" + external_text
             if not text.strip():
                 logger.info("Memory doc is empty; skipping index build for chat_id=%s", self.chat_id)
                 return
