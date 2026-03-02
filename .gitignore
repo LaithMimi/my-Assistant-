@@ -1,0 +1,34 @@
+# ── Sensitive secrets (NEVER commit these) ─────────────────
+.env
+credentials/
+faiss_index/
+
+# JSON secrets (token.json = OAuth token, credentials.json = OAuth client secret)
+token.json
+credentials.json
+
+# ── Safe JSON configs (committed) ──────────────────────────
+# railway.json is fine to commit — no secrets
+
+# ── Python ─────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ── IDE ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ───────────────────────────────────────────────────
+*.log
+
+# ── OS ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
