@@ -55,13 +55,21 @@ def get_profile(chat_id: int) -> dict:
 _YES_WORDS = frozenset(["yes", "y", "confirm", "ok", "sure", "do it", "proceed", "go ahead", "yep", "yeah"])
 _NO_WORDS = frozenset(["no", "n", "cancel", "skip", "stop", "nope", "nah", "abort"])
 
+import re
 
 def _is_yes(text: str) -> bool:
-    return text.lower().strip().rstrip("!.") in _YES_WORDS
+    clean = text.lower().strip().rstrip("!.")
+    if clean in _YES_WORDS:
+        return True
+    # If the user says "yes do it" or "yes mark as complete"
+    return any(clean.startswith(w + " ") for w in _YES_WORDS)
 
 
 def _is_no(text: str) -> bool:
-    return text.lower().strip().rstrip("!.") in _NO_WORDS
+    clean = text.lower().strip().rstrip("!.")
+    if clean in _NO_WORDS:
+        return True
+    return any(clean.startswith(w + " ") for w in _NO_WORDS)
 
 
 # ── Rate limiting ─────────────────────────────────────────────────────────
