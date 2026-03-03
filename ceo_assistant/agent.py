@@ -123,7 +123,14 @@ def build_agent(chat_id: int, ceo_profile: dict):
     )
     graph.add_edge("tool_node", "agent_node")
 
-    return graph.compile()
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    from ceo_assistant.google.auth import DATA_DIR
+    
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    _memory_db_path = str(DATA_DIR / "chat_memory.sqlite")
+    memory_saver = SqliteSaver.from_conn_string(_memory_db_path)
+
+    return graph.compile(checkpointer=memory_saver)
 
 
 # ── Per-session cache ─────────────────────────────────────────────────────
@@ -156,15 +163,13 @@ async def run_agent(chat_id: int, ceo_profile: dict, user_message: str) -> str:
         "ceo_profile": ceo_profile,
     }
 
-    # LangSmith config
-    config: dict = {}
+    # LangSmith & checkpointer config
+    config: dict = {"configurable": {"thread_id": str(chat_id)}}
     if os.environ.get("LANGSMITH_API_KEY"):
         project = os.environ.get("LANGSMITH_PROJECT", "ceo-assistant")
-        config = {
-            "run_name": f"ceo-agent-{chat_id}",
-            "tags": [f"chat_id:{chat_id}"],
-            "metadata": {"chat_id": str(chat_id), "project": project},
-        }
+        config["run_name"] = f"ceo-agent-{chat_id}"
+        config["tags"] = [f"chat_id:{chat_id}"]
+        config["metadata"] = {"chat_id": str(chat_id), "project": project}
 
     t0 = time.monotonic()
     success = True
