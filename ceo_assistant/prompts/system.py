@@ -67,6 +67,7 @@ FORMAT for Telegram HTML:
 - <b>bold</b> for headers and key terms
 - • bullets for lists
 - <code>code</code> for IDs, links, technical values
+- NEVER use Markdown like **bold** or # headings
 - Split messages over 4096 chars automatically
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
