@@ -173,6 +173,26 @@ def gmail_draft_impl(
         return {"subject": "Draft email", "body": key_message}
 
 
+def gmail_send_impl(chat_id: int, recipient: str, subject: str, body: str) -> str:
+    """Send an email using Gmail API."""
+    try:
+        service = get_gmail_service(chat_id)
+        message = MIMEText(body)
+        message["to"] = recipient
+        message["subject"] = subject
+        raw_msg = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        sent = (
+            service.users()
+            .messages()
+            .send(userId="me", body={"raw": raw_msg})
+            .execute()
+        )
+        return f"Email sent successfully to {recipient} (ID: {sent['id']})."
+    except Exception as exc:
+        logger.error("Failed to send email to %s: %s", recipient, exc)
+        return f"Failed to send email: {exc}"
+
+
 # ── LangChain @tool wrappers ──────────────────────────────────────────────
 
 def make_gmail_tools(chat_id: int):
@@ -208,4 +228,29 @@ def make_gmail_tools(chat_id: int):
             f"<i>⚠️ Review before sending. Reply 'send' to dispatch via Gmail.</i>"
         )
 
-    return gmail_triage, gmail_draft
+    @tool
+    def gmail_send(recipient: str, subject: str, body: str) -> str:
+        """Actually send an email via Gmail API. 
+        Args: recipient, subject, body.
+        Only use this if the user has EXPLICITLY confirmed they want to send an existing draft."""
+        from ceo_assistant.utils import confirmation
+        
+        # Must be async because confirmation.confirm() awaits it
+        async def action():
+            import asyncio
+            # Offload blocking synchronous Gmail API call to thread pool to avoid blocking the bot loop
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None, lambda: gmail_send_impl(chat_id, recipient, subject, body)
+            )
+            
+        preview = f"<b>To:</b> {recipient}\n<b>Subject:</b> {subject}\n\n<i>{body[:150]}...</i>"
+        
+        return confirmation.register(
+            chat_id=chat_id,
+            label="Dispatch drafted email via Gmail",
+            preview=preview,
+            execute_fn=action
+        )
+
+    return gmail_triage, gmail_draft, gmail_send
