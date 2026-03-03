@@ -8,12 +8,26 @@ All user-supplied strings must be escaped before embedding in HTML.
 from __future__ import annotations
 
 import html
+import re
 from typing import Any
-
 
 def escape_html(text: str) -> str:
     """Escape a plain-text string for safe inclusion in Telegram HTML messages."""
     return html.escape(str(text), quote=False)
+
+
+def markdown_to_html(text: str) -> str:
+    """
+    Interacts with raw LLM output before Telegram splitting to 
+    convert leaked Markdown syntax into valid Telegram HTML.
+    """
+    # Replace **bold** with <b>bold</b>
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    # Replace __italic__ with <i>italic</i>
+    text = re.sub(r'__(.+?)__', r'<i>\1</i>', text)
+    # Strip markdown headers (e.g. ### Header -> Header)
+    text = re.sub(r'^#+\s+(.*)$', r'<b>\1</b>', text, flags=re.MULTILINE)
+    return text
 
 
 def bold(text: str) -> str:

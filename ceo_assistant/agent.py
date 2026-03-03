@@ -193,9 +193,11 @@ async def run_agent(chat_id: int, ceo_profile: dict, user_message: str) -> str:
                 tools_used.extend(tc["name"] for tc in msg.tool_calls)
 
         # Extract final AI reply
+        from ceo_assistant.utils.formatter import markdown_to_html
         for msg in reversed(result["messages"]):
             if isinstance(msg, AIMessage) and not msg.tool_calls:
-                result_text = msg.content or "✅ Done."
+                raw_content = msg.content or "✅ Done."
+                result_text = markdown_to_html(raw_content)
                 break
 
     except Exception as exc:
