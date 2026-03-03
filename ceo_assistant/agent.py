@@ -123,12 +123,16 @@ def build_agent(chat_id: int, ceo_profile: dict):
     )
     graph.add_edge("tool_node", "agent_node")
 
+    import sqlite3
     from langgraph.checkpoint.sqlite import SqliteSaver
     from ceo_assistant.google.auth import DATA_DIR
     
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     _memory_db_path = str(DATA_DIR / "chat_memory.sqlite")
-    memory_saver = SqliteSaver.from_conn_string(_memory_db_path)
+    
+    # Needs to be a persistent connection outside of a context manager block
+    conn = sqlite3.connect(_memory_db_path, check_same_thread=False)
+    memory_saver = SqliteSaver(conn)
 
     return graph.compile(checkpointer=memory_saver)
 
